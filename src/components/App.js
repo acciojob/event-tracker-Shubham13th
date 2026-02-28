@@ -1,105 +1,139 @@
-
 import React, { useState } from "react";
-import './../styles/App.css';
+import { Calendar, momentLocalizer } from "react-big-calendar";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import EventForm from "./EventForm";
+import EditEventForm from "./EditEventForm";
+import "../styles/App.css";
 
-const months = [
-  "January", "February", "March", "April",
-  "May", "June", "July", "August",
-  "September", "October", "November", "December"
-];
+const localizer = momentLocalizer(moment);
 
 const App = () => {
+  const [events, setEvents] = useState([]);
+  const [filter, setFilter] = useState("all");
+  const [showCreate, setShowCreate] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
-  const [month, setMonth] = useState(2);
-  const [year, setYear] = useState(2026);
+  // 🔎 Filter logic
+  const filteredEvents = events.filter((event) => {
+    if (filter === "all") return true;
+    if (filter === "past")
+      return moment(event.start).isBefore(moment(), "day");
+    if (filter === "upcoming")
+      return moment(event.start).isSameOrAfter(moment(), "day");
+    return true;
+  });
 
-  const firstDay = new Date(year, month, 1).getDay();
-  const totalDays = new Date(year, month + 1, 0).getDate();
+  // 🎨 Event coloring
+  const eventStyleGetter = (event) => {
+    const isPast = moment(event.start).isBefore(moment(), "day");
 
-  const days = [];
+    return {
+      style: {
+        backgroundColor: isPast
+          ? "rgb(222, 105, 135)"
+          : "rgb(140, 189, 76)",
+      },
+    };
+  };
 
-  for (let i = 0; i < firstDay; i++) {
-    days.push("");
-  }
+  // 📅 Create event
+  const handleSelectSlot = (slotInfo) => {
+    setSelectedSlot(slotInfo);
+    setShowCreate(true);
+  };
 
-  for (let i = 1; i <= totalDays; i++) {
-    days.push(i);
-  }
+  const handleSaveEvent = (title, location) => {
+    const newEvent = {
+      id: Date.now(),
+      title,
+      location,
+      start: selectedSlot.start,
+      end: selectedSlot.end,
+    };
 
-  while (days.length % 7 !== 0) {
-    days.push("");
-  }
+    setEvents([...events, newEvent]);
+    setShowCreate(false);
+  };
 
+  // ✏️ Edit event
+  const handleSelectEvent = (event) => {
+    setSelectedEvent(event);
+    setShowEdit(true);
+  };
 
-  const nextMonth = () => {
-    if (month === 11) {
-      setMonth(0);
-      setYear(year + 1);
-    } else {
-      setMonth(month + 1);
-    }
-  }
+  const handleUpdateEvent = (updatedTitle) => {
+    const updatedEvents = events.map((ev) =>
+      ev.id === selectedEvent.id
+        ? { ...ev, title: updatedTitle }
+        : ev
+    );
+    setEvents(updatedEvents);
+    setShowEdit(false);
+  };
 
-  const prevMonth = () => {
-    if (month === 0) {
-      setMonth(11);
-      setYear(year - 1);
-    } else {
-      setMonth(month - 1);
-    }
-  }
-
-  const weeks = [];
-  for (let i = 0; i < days.length; i += 7) {
-    weeks.push(days.slice(i, i + 7));
-  }
+  const handleDeleteEvent = () => {
+    const updatedEvents = events.filter(
+      (ev) => ev.id !== selectedEvent.id
+    );
+    setEvents(updatedEvents);
+    setShowEdit(false);
+  };
 
   return (
     <div id="main">
-      <h1 id="event-tracker">Event Tracker</h1>
+      <h1>Event Tracker</h1>
+
+      {/* Filter Buttons */}
       <div>
-        <div id="navigation">
-          <div>
-            <button id="prev-month" onClick={prevMonth}>&larr; prev</button>
-            <button id="next-month" onClick={nextMonth}>next &rarr;</button>
-          </div>
-
-          <div>{months[month]} {year}</div>
-          <div>
-            <button id='all-events'>All</button>
-            <button id='past-events'>Past</button>
-            <button id='upcoming-events'>Upcoming</button>
-          </div>
-
-        </div>
-
-        <div id="calendar">
-          <table id="calendar-table">
-            <thead>
-              <tr>
-                <th>Sun</th>
-                <th>Mon</th>
-                <th>Tue</th>
-                <th>Wed</th>
-                <th>Thu</th>
-                <th>Fri</th>
-                <th>Sat</th>
-              </tr>
-            </thead>
-            <tbody>
-              {weeks.map((week, i) => (
-                <tr key={i}>
-                  {week.map((day, j) => (
-                    <td key={j}>{day}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <button className="btn" onClick={() => setFilter("all")}>
+          All
+        </button>
+        <button className="btn" onClick={() => setFilter("past")}>
+          Past
+        </button>
+        <button className="btn" onClick={() => setFilter("upcoming")}>
+          Upcoming
+        </button>
       </div>
-    </div>
-  )
-}
 
-export default App
+      <Calendar
+        selectable
+        localizer={localizer}
+        events={filteredEvents}
+        startAccessor="start"
+        endAccessor="end"
+        style={{ height: 500, marginTop: 20 }}
+        onSelectSlot={handleSelectSlot}
+        onSelectEvent={handleSelectEvent}
+        eventPropGetter={eventStyleGetter}
+      />
+
+      {/* CREATE POPUP */}
+      {showCreate && (
+        <div className="mm-popup">
+          <div className="mm-popup__box">
+            <EventForm onSave={handleSaveEvent} />
+          </div>
+        </div>
+      )}
+
+      {/* EDIT POPUP */}
+      {showEdit && (
+        <div className="mm-popup">
+          <div className="mm-popup__box">
+            <EditEventForm
+              event={selectedEvent}
+              onUpdate={handleUpdateEvent}
+              onDelete={handleDeleteEvent}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
