@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Calendar, momentLocalizer } from "react-big-calendar";
+import Calendar  from "react-big-calendar";
+import { momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import EventForm from "./EventForm";
@@ -81,6 +82,11 @@ const App = () => {
     setEvents(updatedEvents);
     setShowEdit(false);
   };
+
+  // console.log("Calendar:", Calendar);
+  // console.log("momentLocalizer:", momentLocalizer);
+  // console.log("EventForm:", EventForm);
+  // console.log("EditEventForm:", EditEventForm);
 
   return (
     <div id="main">
